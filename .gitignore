@@ -1,0 +1,97 @@
+# ============================================================================
+# Pref-Restore  .gitignore
+# ----------------------------------------------------------------------------
+# Goal: keep all source code, configs, scripts, small assets; exclude all
+# pretrained weights, training products, and third-party model snapshots.
+# ============================================================================
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg
+*.egg-info/
+.eggs/
+.installed.cfg
+pip-wheel-metadata/
+.tox/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---------- Editors / IDE ----------
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+.DS_Store
+Thumbs.db
+
+# ---------- Jupyter ----------
+.ipynb_checkpoints/
+
+# ---------- Local tool configs ----------
+.claude/
+.codex
+
+# ---------- WandB / TensorBoard / training logs ----------
+wandb/
+runs/
+events.out.tfevents.*
+*.log
+
+# ============================================================================
+# Pretrained weights & checkpoints — ALWAYS ignore at repo root and anywhere
+# ============================================================================
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.ckpt
+*.onnx
+*.h5
+*.pkl
+
+# Whitelist a few small, library-shipped weight-like files that are part of
+# the source tree (not pretrained weights):
+!BasicSR/basicsr/metrics/niqe_pris_params.npz
+
+# ============================================================================
+# Project-specific large directories — ignored entirely
+# ============================================================================
+
+# Training products: tens of GB of checkpoints, sample images, optimizer states
+DiffusionNFT/logs/
+!DiffusionNFT/logs/.gitkeep
+!DiffusionNFT/logs/README.md
+
+# Reward / preference model snapshots downloaded from HuggingFace (tens of GB)
+DiffusionNFT/reward_ckpts/
+!DiffusionNFT/reward_ckpts/.gitkeep
+!DiffusionNFT/reward_ckpts/README.md
+
+# Output / sample dirs that downstream scripts write into
+DiffusionNFT/dataset/
+!DiffusionNFT/dataset/.gitkeep
+!DiffusionNFT/dataset/README.md
+
+# Throwaway working dirs
+temp/
+
+# ---------- Misc ----------
+*~
+*.bak
+*.tmp
+*.partial
+* copy.*
+trainable_parameters*.txt
+model_structure_inspection.txt
+
+# Allow LICENSE-style files even if a name pattern would otherwise match
+!LICENSE
+!LICENSE.*
