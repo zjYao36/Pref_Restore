@@ -1,24 +1,17 @@
-# 这一步 unfreeze 了 vae 的 encoder， 以及加了一层loss。
-# resume的话直接用之前的的目录 {LOCAL_DIR} 就可以
-export WANDB_API_KEY='your_wandb_api_key'
-export WANDB_PROJECT=blip3o_next
+# for resume training, just change {LOCAL_DIR}
+export WANDB_API_KEY='246286f3e4e4f0f6075dc23780b95a3c8fb523c7'
+export WANDB_PROJECT=prefRestore
 export HF_HOME=/your/hf/home/
 
 VISION_MODEL=/data/phd/hf_models/Unified-Models/TA-Tok/ta_tok.pth
-# PRETRAINED_MODEL=/data/phd/yaozhengjian/zjYao_Exprs/BLIP-3o-next/Models/Rebuttal/Face-Restoration_FFHQ_VAE_Step3_scaling+Text_Enhance/checkpoint-50000
 PRETRAINED_MODEL=/data/phd/yaozhengjian/zjYao_Exprs/BLIP-3o-next/Models/Face-Restoration_FFHQ_VAE_Step3_scaling+Text+Recon-V2_3/checkpoint-128000
 DIFFUSION=/data/phd/hf_models/Efficient-Large-Model/SANA1.5_1.6B_1024px_diffusers
+DATA_PATH=/data/phd/yaozhengjian/zjYao_Datasets/Pref-Restore/FFHQ/zjyao_data_txt/train_data_all_caption.txt   # 10 个epoch是 16760 iters
 
-# DATA_PATH=/data/phd/yaozhengjian/zjYao_Datasets/Pref-Restore/FFHQ/zjyao_data_txt/train_data_all_caption.txt   # 10 个epoch是 16760 iters
-# DATA_PATH=/data/phd/yaozhengjian/zjYao_Datasets/Pref-Restore/FFHQ/zjyao_data_txt/train_data.txt 
-# DATA_PATH=/data/phd/yaozhengjian/zjYao_Datasets/Pref-Restore/FFHQ/zjyao_data_txt/train_data_caption_rebuttal.txt # 10 个epoch是 5930 iters
-DATA_PATH=/data/phd/yaozhengjian/zjYao_Datasets/Pref-Restore/FFHQ/zjyao_data_txt/train_data_caption_rebuttal_celeba-only.txt # 10 个epoch是 460 iters
 
 EPOCH=100
-
-LR=2e-5 # 重建 复原 比例改为 1:4。更改了重建任务的 prompt 
-# RUN_NAME="Face-Restoration_FFHQ_VAE_Step3_scaling+Recon-V3_5" ###!!!!!!!!!!!!!!!!!!!!!!!!!!
-RUN_NAME="Face-Restoration_FFHQ_VAE_Step3_scaling+Text_EnhanceV3"
+LR=2e-5 
+RUN_NAME="Face-Restoration_FFHQ_Step2"
 
 
 echo "PRETRAINED_MODEL: ${PRETRAINED_MODEL}"
@@ -27,9 +20,6 @@ echo "RUN_NAME: ${RUN_NAME}"
 LOCAL_DIR="/data/phd/yaozhengjian/zjYao_Exprs/BLIP-3o-next/Models/Rebuttal/${RUN_NAME}"
 mkdir -p ${LOCAL_DIR}
 
-# vision_tower 只能从外部传入
-# 可能要改一下model_max_length
-# 新加了vae_connector True
 
 torchrun --nproc_per_node=8  \
     --nnodes=1 \
@@ -57,9 +47,9 @@ torchrun --nproc_per_node=8  \
     --run_name $RUN_NAME \
     --output_dir ${LOCAL_DIR} \
     --num_train_epochs ${EPOCH} \
-    --per_device_train_batch_size 16 \
+    --per_device_train_batch_size 8 \
     --per_device_eval_batch_size 4 \
-    --gradient_accumulation_steps 1 \
+    --gradient_accumulation_steps 2 \
     --save_strategy "steps" \
     --save_steps 4000 \
     --save_total_limit 10 \

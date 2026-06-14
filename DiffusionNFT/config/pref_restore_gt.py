@@ -91,111 +91,6 @@ def pref_restore_gt_reward():
     config.train.lora_path = "/data/phd/yaozhengjian/Code/RL/ART-FRv2/DiffusionNFT/logs/nft/prefRestore/gt_reward_6指标-CodeformerData/checkpoints/checkpoint-180/lora"
     return config
 
-def pref_restore_4_reward():
-    reward_fn = {
-        "pickscore": 1.0,
-        "hpsv2": 1.0,
-        "clipscore": 1.0,
-        "arcface": 1.0,
-    }
-    config = _get_config(
-        base_model="prefRestore",
-        n_gpus=8,
-        gradient_step_per_epoch=1,
-        dataset="restore_face_codeformer",
-        reward_fn=reward_fn,
-        name="codeformer_aesthetic+arcface",
-    )
-    config.run_name = "prefRestore_codeformer_4metrics_aesthetic+arcface"
-    config.sample.num_steps = 30
-    config.beta = 0.1
-    return config
-
-def pref_restore_5_reward():
-    reward_fn = {
-        "pickscore": 1.0,
-        "hpsv2": 1.0,
-        "clipscore": 1.0,
-        "arcface": 1.0,
-        "lpips": 1.0, 
-    }
-    config = _get_config(
-        base_model="prefRestore",
-        n_gpus=8,
-        gradient_step_per_epoch=1,
-        dataset="restore_face_codeformer",
-        reward_fn=reward_fn,
-        name="codeformer_aesthetic+arcface+lpips",
-    )
-    config.run_name = "prefRestore_codeformer_5metrics_aesthetic+arcface+lpips"
-    config.sample.num_steps = 30
-    config.beta = 0.1
-    return config
-
-
-def pref_restore_gt_reward_ffhq():
-    """All 5 rewards: PickScore + HPSv2 + CLIPScore + LMD + ArcFace (FFHQ dataset)"""
-    reward_fn = {
-        "pickscore": 1.0,
-        "hpsv2": 1.0,
-        "clipscore": 1.0,
-        "lmd": 1.0,
-        "arcface": 1.0,
-    }
-    config = _get_config(
-        base_model="prefRestore",
-        n_gpus=8,
-        gradient_step_per_epoch=1,
-        dataset="restore_face_ffhq",
-        reward_fn=reward_fn,
-        name="gt_reward_ffhq",
-    )
-    config.run_name = "prefRestore_gt-reward_5metrics_FFHQ"
-    config.sample.num_steps = 30
-    config.beta = 0.1
-    return config
-
-
-def pref_restore_gt_only():
-    reward_fn = {
-        "lmd": 1.0,
-        "arcface": 1.0,
-        "lpips": 1.0, 
-    }
-    config = _get_config(
-        base_model="prefRestore",
-        n_gpus=8,
-        gradient_step_per_epoch=1,
-        dataset="restore_face_validation",
-        reward_fn=reward_fn,
-        name="gt_only_val+lpips",
-    )
-    config.run_name = "prefRestore_gt-only_lmd-arcface-lpips_ValData"
-    config.sample.num_steps = 30
-    config.beta = 0.1
-    return config
-
-
-def pref_restore_gt_only_ffhq():
-    """GT-only rewards: LMD + ArcFace (FFHQ dataset)"""
-    reward_fn = {
-        "lmd": 1.0,
-        "arcface": 1.0,
-    }
-    config = _get_config(
-        base_model="prefRestore",
-        n_gpus=8,
-        gradient_step_per_epoch=1,
-        dataset="restore_face_ffhq",
-        reward_fn=reward_fn,
-        name="gt_only_ffhq",
-    )
-    config.run_name = "prefRestore_gt-only_lmd-arcface_FFHQ"
-    config.sample.num_steps = 30
-    config.beta = 0.1
-    return config
-
-
 # ============================================================
 # Original configs (kept for compatibility)
 # ============================================================
@@ -215,25 +110,6 @@ def pref_restore_multi_reward():
         name="multi_reward",
     )
     config.run_name = f"prefRestore_multi-reward_dosampleFalse"
-    config.sample.num_steps = 30
-    config.beta = 0.1
-    return config
-
-def pref_restore_multi_reward_ffhq():
-    reward_fn = {
-        "pickscore": 1.0,
-        "hpsv2": 1.0,
-        "clipscore": 1.0,
-    }
-    config = _get_config(
-        base_model="prefRestore",
-        n_gpus=8,
-        gradient_step_per_epoch=1,
-        dataset="restore_face_ffhq",
-        reward_fn=reward_fn,
-        name="multi_reward",
-    )
-    config.run_name = f"prefRestore_multi-FFHQ-data"
     config.sample.num_steps = 30
     config.beta = 0.1
     return config

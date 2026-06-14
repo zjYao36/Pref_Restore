@@ -128,6 +128,8 @@ The reward code expects these **exact paths** (see `DiffusionNFT/reward_ckpts/RE
 | CelebA-HQ | CelebA-HQ | SFT + RL — train / val |
 | FFHQ-512 + captions (the exact split we used) | [HF: Ryan-sjtu/ffhq512-caption](https://huggingface.co/datasets/Ryan-sjtu/ffhq512-caption) | drop-in (HQ image + caption) for Stage A |
 | FFHQ + LLaVA short captions (the exact split we used) | [HF: irodkin/ffhq_with_llava_shorter_captions](https://huggingface.co/datasets/irodkin/ffhq_with_llava_shorter_captions) | drop-in (HQ image + caption) for Stage A |
+| Our PhaseA caption manifest (`long_captions.json`) | [HF: zjyao-PKU/Pref-Restore-Data](https://huggingface.co/datasets/zjyao-PKU/Pref-Restore-Data) → `PhaseA/long_captions.json` | the (HQ-image-basename, caption) pairs we use in Stage A |
+| Our PhaseB RL metadata (`{train,test}_metadata.jsonl`) | [HF: zjyao-PKU/Pref-Restore-Data](https://huggingface.co/datasets/zjyao-PKU/Pref-Restore-Data) → `PhaseB/restore_face_codeformer/` | RL prompts + (LQ, GT) image basenames for Stage B |
 | Real-world FR test sets (LFW / WebPhoto / WIDER / CelebChild) **or your own photos** | standard blind-FR benchmarks | inference inputs |
 
 > You only need **high-quality (HQ) face images + one caption per image** to train. The degraded **low-quality (LQ) inputs are synthesized on the fly** during training (blur · down-sampling · noise · JPEG), so you do **not** pre-build LQ/HQ pairs.
@@ -189,24 +191,64 @@ DeepSpeed configs are under `scripts/zero1.json` / `scripts/zero2.json`.
 
 ### Stage B — Preference RL with DiffusionNFT  `[env: DiffusionNFT]`
 
+#### Prepare the PhaseB dataset
+
+The RL trainer reads its prompt/image list from **`DiffusionNFT/dataset/<dataset_name>/{train,test}_metadata.jsonl`** (the path is constructed in `DiffusionNFT/config/pref_restore_gt.py` as `os.path.join(cwd, f"dataset/{dataset}")`). For the default GT-aware config (`pref_restore_gt_reward`), `dataset_name = restore_face_codeformer`.
+
+**1. Download the metadata** from our HF dataset and put it in place:
+
+```bash
+# Inside the repo root
+mkdir -p DiffusionNFT/dataset/restore_face_codeformer
+# from https://huggingface.co/datasets/zjyao-PKU/Pref-Restore-Data
+#   PhaseB/restore_face_codeformer/train_metadata.jsonl
+#   PhaseB/restore_face_codeformer/test_metadata.jsonl
+# -> place both files under DiffusionNFT/dataset/restore_face_codeformer/
+```
+
+**2. JSONL format** (one JSON object per line):
+
+```json
+{"prompt": "A photograph of a person ...",
+ "image":    "validation_104.png",          // LQ input (CodeFormer-degraded face)
+ "gt_image": "validation_104.png",          // HQ ground-truth (only in train)
+ "requirement": "Restore"}
+```
+
+`image` and `gt_image` are stored as **basenames only**. Place the actual image files alongside the JSONL in two sibling directories, e.g.:
+
+```
+DiffusionNFT/dataset/restore_face_codeformer/
+├── train_metadata.jsonl
+├── test_metadata.jsonl
+├── lq/        ← put all LQ images here (matching `image`)
+└── gt/        ← put all HQ images here (matching `gt_image`)
+```
+
+Wire `lq/` and `gt/` into the dataloader (or symlink them) so that `<dataset_dir>/lq/<basename>` and `<dataset_dir>/gt/<basename>` resolve to the actual files. The LQ images we used are CodeFormer-degraded CelebA-HQ faces; the GT images are the corresponding HQ originals. You can substitute your own degradation pipeline as long as the JSONL fields match.
+
+#### Launch training
+
 ```bash
 conda activate DiffusionNFT
 cd DiffusionNFT
 export WANDB_PROJECT=DiffusionNFT_PrefRestore
 
-# Main pipeline: multi-reward preference optimization
+# Default: GT-aware reward (PickScore + HPSv2 + CLIPScore + LMD + ArcFace + LPIPS)
+torchrun --nproc_per_node=8 --master_port=11234 \
+    scripts/train_nft_prefRestore_gt.py \
+    --config config/pref_restore_gt.py:pref_restore_gt_reward
+
+# Multi-reward variant (without GT-aware rewards)
 torchrun --nproc_per_node=8 --master_port=11234 \
     scripts/train_nft_prefRestore.py \
     --config config/pref_restore.py:pref_restore_multi_reward
-
-# GT-aware variant (PickScore + HPSv2 + CLIPScore + LMD + ArcFace)
-bash scripts/run_gt.sh pref_restore_gt_reward
 ```
 
-| Script | Config | Description |
+| Script | Config | Dataset (under `DiffusionNFT/dataset/`) |
 |---|---|---|
-| `scripts/train_nft_prefRestore.py` | `config/pref_restore.py` | main multi-reward preference RL (paper method) |
-| `scripts/train_nft_prefRestore_gt.py` | `config/pref_restore_gt.py` | GT-aware variant with landmark + ArcFace rewards |
+| `scripts/train_nft_prefRestore_gt.py` | `config/pref_restore_gt.py:pref_restore_gt_reward` | `restore_face_codeformer/` (paper default) |
+| `scripts/train_nft_prefRestore.py` | `config/pref_restore.py:pref_restore_multi_reward` | `restore_face/` |
 
 RL checkpoints (including LoRA adapters) are written to `DiffusionNFT/logs/` (gitignored).
 
