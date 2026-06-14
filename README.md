@@ -1,11 +1,11 @@
-# Pref-Restore: Bridging Information Asymmetry — A Hierarchical Framework for Deterministic Blind Face Restoration
+# Bridging Information Asymmetry: A Hierarchical Framework for Blind Face Restoration with Reduced Uncertainty
 
 [![arXiv](https://img.shields.io/badge/arXiv-2601.19506-b31b1b.svg)](https://arxiv.org/abs/2601.19506)
 [![TPAMI](https://img.shields.io/badge/IEEE-TPAMI%202026-004c97.svg)](https://www.computer.org/csdl/journal/tp)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-> Internal codename: `ART-FRv2`. Official code release for our **IEEE TPAMI 2026** paper.
-> 📄 **Paper:** [Bridging Information Asymmetry: A Hierarchical Framework for Deterministic Blind Face Restoration](https://arxiv.org/abs/2601.19506) (arXiv:2601.19506)
+> Official code release for our **IEEE TPAMI 2026** paper.
+> 📄 **Paper:** [Bridging Information Asymmetry: A Hierarchical Framework for Blind Face Restoration with Reduced Uncertainty](https://arxiv.org/abs/2601.19506) (arXiv:2601.19506)
 
 This repository contains the official **training and inference** code for **Pref-Restore**, a hierarchical framework for blind face restoration that bridges the information asymmetry between a degraded input and its high-quality target via reinforcement-learning–based preference optimization.
 
@@ -34,8 +34,6 @@ Their original LICENSE files are preserved.
 
 ## 📑 Table of Contents
 
-- [Heads-up before you clone](#-heads-up-before-you-clone)
-- [Repository layout](#-repository-layout)
 - [Installation (environment setup)](#-installation-environment-setup)
 - [Required external assets (weights & data)](#-required-external-assets-weights--data)
 - [Training](#-training)
@@ -45,56 +43,6 @@ Their original LICENSE files are preserved.
 
 ---
 
-## ⚠️ Heads-up before you clone
-
-This repository contains **only source code, scripts and configs** (~16 MB).
-A full training/inference run additionally requires pretrained backbone weights and reward models that are **NOT redistributed here** — see [Required external assets](#-required-external-assets-weights--data).
-
-Also note: many scripts contain **hardcoded local paths** of the form `/data/phd/yaozhengjian/...`. Replace them with your own paths before running (`grep -rn "/data/phd" .` to find them). We keep them as-is for traceability rather than auto-rewriting.
-
----
-
-## 🗂 Repository layout
-
-```
-Pref-Restore/
-├── README.md                          # this file
-├── LICENSE                            # Apache-2.0
-├── requirements.txt
-├── setup.py                           # installs the `blip3o_next` package
-├── artfr-run.sh                       # end-to-end command reference (train + infer)
-│
-├── blip3o/                            # modified BLIP-3o-NEXT backbone
-│   ├── data/                          #   degradation pipeline, dataset wrappers
-│   ├── model/                         #   Qwen + diffusion-decoder architecture
-│   └── train/                         #   SFT training loops (step1/2/3, combined)
-│
-├── BasicSR/                           # modified BasicSR (kept inline)
-├── tok/                               # tokenizer / image-tokenizer assets
-├── trl/                               # local copy of TRL with our patches
-│
-├── DiffusionNFT/                      # modified DiffusionNFT (preference RL)
-│   ├── flow_grpo/                     #   our preference-optimization core
-│   ├── config/                        #   RL configs (pref_restore*.py)
-│   ├── scripts/                       #   RL launchers (train_nft_prefRestore*.py)
-│   ├── reward_ckpts/                  #   ⬇  reward models (must be downloaded)
-│   ├── dataset/                       #   ⬇  training data (must be prepared)
-│   ├── logs/                          #   ⬇  training outputs (created at runtime)
-│   └── run.sh                         #   RL training launcher
-│
-├── scripts/                           # SFT launchers + accelerate/DeepSpeed configs
-│   ├── zjyao_i2i*.sh                  #   SFT stage launchers
-│   └── zero1.json / zero2.json        #   DeepSpeed ZeRO configs
-│
-├── generate_degraded_data.py          # build degraded (LQ) inputs from clean targets
-├── process_image_degradation.py
-├── inference_batch_noPrompt_fixLQ_vae.py        # inference — base (SFT) model
-└── inference_batch_noPrompt_fixLQ_vae_lora.py   # inference — RL-finetuned LoRA model
-```
-
-`⬇` marks directories that are **gitignored** but expected to exist locally — see below for how to populate them.
-
----
 
 ## 🔧 Installation (environment setup)
 
@@ -142,53 +90,59 @@ pip install -e DiffusionNFT
 pip install -e .
 ```
 
-> **flash-attn note.** `pip install flash-attn==2.7.4.post1` needs the CUDA toolkit + matching torch; if no prebuilt wheel exists for your platform, build from source: `pip install flash-attn==2.7.4.post1 --no-build-isolation`.
->
-> The `flex_attention` kernel used by the BLIP-3o decoder ships with PyTorch ≥ 2.5 and works in both envs.
-
 ---
 
 ## 📦 Required external assets (weights & data)
 
-These directories are **gitignored** and must be populated locally.
+Everything below is **gitignored** and must be downloaded locally. Grab only what your target step needs:
 
-### 1. Backbone weights (for SFT)
+| To run… | You need |
+|---|---|
+| **Inference only** | ① Backbone weights + your own LQ images |
+| **SFT training (Stage A)** | ① Backbone weights + ③ Datasets |
+| **Preference-RL training (Stage B)** | ① Backbone weights + ② Reward models + ③ Datasets |
 
-| Asset | Source | Notes |
+### ① Backbone weights — loaded by *every* step (SFT · RL · inference)
+
+| File | Download from | Where it goes | Used by |
+|---|---|---|---|
+| `ta_tok.pth` (TA-Tok image tokenizer) | the BLIP-3o-NEXT release | any local path → point `VISION_MODEL=` in `scripts/zjyao_i2i*.sh` to it | image tokenizer |
+| SANA 1.5 diffusion decoder (a diffusers folder) | [Efficient-Large-Model / SANA1.5](https://huggingface.co/Efficient-Large-Model) | any local path → point `DIFFUSION=` in the SFT scripts to it | diffusion head |
+
+> These two define the model architecture. After Stage A, your SFT checkpoint (passed as `--model_path` at inference) already embeds them — for **inference you only need the SFT checkpoint**, not the raw SANA/TA-Tok files again.
+
+### ② Reward models — only for RL training (Stage B) → place under `DiffusionNFT/reward_ckpts/`
+
+The reward code expects these **exact paths** (see `DiffusionNFT/reward_ckpts/README.md`):
+
+| File / folder | Download from | Exact local path |
 |---|---|---|
-| TA-Tok image tokenizer | from the BLIP-3o-NEXT release | path set via `VISION_MODEL` in `scripts/zjyao_i2i_step3.sh` |
-| SANA 1.5 diffusion decoder | [Efficient-Large-Model / SANA1.5](https://huggingface.co/Efficient-Large-Model) | path set via `DIFFUSION` in the SFT scripts |
+| LAION CLIP-ViT-H/14 | [laion/CLIP-ViT-H-14-laion2B-s32B-b79K](https://huggingface.co/laion/CLIP-ViT-H-14-laion2B-s32B-b79K) | `DiffusionNFT/reward_ckpts/laion/CLIP-ViT-H-14-laion2B-s32B-b79K/` |
+| PickScore v1 | [yuvalkirstain/PickScore_v1](https://huggingface.co/yuvalkirstain/PickScore_v1) | `DiffusionNFT/reward_ckpts/yuvalkirstain/PickScore_v1/` |
+| OpenAI CLIP-ViT-L/14 | [openai/clip-vit-large-patch14](https://huggingface.co/openai/clip-vit-large-patch14) | `DiffusionNFT/reward_ckpts/openai/clip-vit-large-patch14/` |
+| HPS v2.1 | [tgxs002/HPSv2](https://github.com/tgxs002/HPSv2) | `DiffusionNFT/reward_ckpts/HPS_v2.1_compressed.pt` |
 
-### 2. Reward / preference models (for RL) → `DiffusionNFT/reward_ckpts/`
+> The default config (`pref_restore_multi_reward`) uses the four models above. The **GT-aware variant only** (`bash scripts/run_gt.sh`) additionally needs landmark (LMD) + ArcFace identity models — see `DiffusionNFT/config/pref_restore_gt.py`. Skip those if you use the default.
 
-Place the downloaded folders under `DiffusionNFT/reward_ckpts/` (see `DiffusionNFT/reward_ckpts/README.md`).
+### ③ Datasets
 
-| Model | Source | Local path |
+| Data | Download from | Used by |
 |---|---|---|
-| LAION CLIP-ViT-H/14 | [HF: laion/CLIP-ViT-H-14-laion2B-s32B-b79K](https://huggingface.co/laion/CLIP-ViT-H-14-laion2B-s32B-b79K) | `DiffusionNFT/reward_ckpts/laion/CLIP-ViT-H-14-laion2B-s32B-b79K/` |
-| PickScore v1 | [HF: yuvalkirstain/PickScore_v1](https://huggingface.co/yuvalkirstain/PickScore_v1) | `DiffusionNFT/reward_ckpts/yuvalkirstain/PickScore_v1/` |
-| OpenAI CLIP-ViT-L/14 | [HF: openai/clip-vit-large-patch14](https://huggingface.co/openai/clip-vit-large-patch14) | `DiffusionNFT/reward_ckpts/openai/clip-vit-large-patch14/` |
-| HPS v2.1 | [GitHub: tgxs002/HPSv2](https://github.com/tgxs002/HPSv2) | `DiffusionNFT/reward_ckpts/HPS_v2.1_compressed.pt` |
+| FFHQ-256 / FFHQ-512 | [official FFHQ](https://github.com/NVlabs/ffhq-dataset) | SFT + RL — HQ targets |
+| CelebA-HQ | [CelebA-HQ](https://github.com/tkarras/progressive_growing_of_gans) | SFT + RL — train / val |
+| Synthetic (LQ, HQ) pairs | generate locally (box below) | SFT supervision |
+| Real-world FR test sets (LFW / WebPhoto / WIDER / CelebChild) **or your own photos** | standard blind-FR benchmarks | inference inputs |
 
-> The GT-aware reward variant (`scripts/run_gt.sh`) additionally uses landmark (LMD) and ArcFace identity rewards; see `DiffusionNFT/config/pref_restore_gt.py`.
-
-### 3. Datasets
-
-| Dataset | Source | Used for |
-|---|---|---|
-| FFHQ-256 / FFHQ-512 | [official FFHQ](https://github.com/NVlabs/ffhq-dataset) | training targets |
-| CelebA-HQ | [CelebA-HQ](https://github.com/tkarras/progressive_growing_of_gans) | training / validation |
-| Synthetic degraded pairs | generated locally — see `generate_degraded_data.py` | SFT supervision |
-| Real-world FR test sets (LFW-Test, WebPhoto-Test, WIDER-Test, CelebChild-Test) | standard blind-FR benchmarks | inference inputs |
-
-Generate the synthetic (LQ, HQ) training pairs:
+Generate the synthetic degraded pairs for SFT:
 
 ```bash
 conda activate art-fr
-python generate_degraded_data.py   # edit the in-script paths first
+python generate_degraded_data.py     # edit the in-script source/target paths first
 ```
 
-The SFT scripts consume a plain-text manifest (`DATA_PATH=.../train_data*.txt`); the inference scripts consume a JSON list of LQ images (`--json_path .../captions_lq.json`). Edit the hardcoded paths to point to your own copies.
+**File formats the scripts expect:**
+- **SFT training** → a plain-text manifest, one sample per line — point `DATA_PATH=.../train_data*.txt` in the SFT scripts to it.
+- **Inference** → a JSON list of LQ image paths — pass it via `--json_path .../captions_lq.json`.
 
 ---
 
