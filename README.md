@@ -99,7 +99,7 @@ Everything below is **gitignored** and must be downloaded locally. Grab only wha
 
 The model is built from **three separately-downloaded pieces**. The BLIP-3o-NEXT backbone is **not** self-contained — its code loads the TA-Tok tokenizer and the SANA decoder from external paths (the SFT scripts wire all three):
 
-| Component | Download from | Wired via (in `scripts/sft_i2i*.sh`) | Role |
+| Component | Download from | Wired via (in `scripts/sft_step*.sh`) | Role |
 |---|---|---|---|
 | **BLIP3o-NEXT-SFT-3B** (multimodal LLM backbone) | [HF: BLIP3o/BLIP3o-NEXT-SFT-3B](https://huggingface.co/BLIP3o/BLIP3o-NEXT-SFT-3B) ([code](https://github.com/JiuhaiChen/BLIP3o)) | `--model_name_or_path` ( `PRETRAINED_MODEL=` ) | auto-regressive backbone |
 | `ta_tok.pth` (TA-Tok image tokenizer) | the TA-Tok / BLIP-3o-NEXT release | `--vision_tower` ( `VISION_MODEL=` ) — must be passed externally | image tokenizer |
@@ -126,19 +126,41 @@ The reward code expects these **exact paths** (see `DiffusionNFT/reward_ckpts/RE
 |---|---|---|
 | FFHQ-256 / FFHQ-512 | [official FFHQ](https://github.com/NVlabs/ffhq-dataset) | SFT + RL — HQ targets |
 | CelebA-HQ | [CelebA-HQ](https://github.com/tkarras/progressive_growing_of_gans) | SFT + RL — train / val |
-| Synthetic (LQ, HQ) pairs | generate locally (box below) | SFT supervision |
 | Real-world FR test sets (LFW / WebPhoto / WIDER / CelebChild) **or your own photos** | standard blind-FR benchmarks | inference inputs |
 
-Generate the synthetic degraded pairs for SFT:
+> You only need **high-quality (HQ) face images + one caption per image** to train. The degraded **low-quality (LQ) inputs are synthesized on the fly** during training (blur · down-sampling · noise · JPEG), so you do **not** pre-build LQ/HQ pairs.
 
-```bash
-conda activate art-fr
-python generate_degraded_data.py     # edit the in-script source/target paths first
+#### How to organize the SFT training data
+
+The SFT scripts take `--data_path` = a **plain-text manifest** (`train_data*.txt`). **Each line is a directory path**; every such directory is scanned recursively for `.parquet` (or `.tar` / WebDataset) shards:
+
+```text
+# train_data.txt  — one dataset directory per line
+/your/data/FFHQ/parquet
+/your/data/CelebA-HQ/parquet
 ```
 
-**File formats the scripts expect:**
-- **SFT training** → a plain-text manifest, one sample per line — point `DATA_PATH=.../train_data*.txt` in the SFT scripts to it.
-- **Inference** → a JSON list of LQ image paths — pass it via `--json_path .../captions_lq.json`.
+Each shard must provide two columns:
+
+| Column | Content |
+|---|---|
+| `image` | the HQ face image (decoded by 🤗 `datasets` as a PIL image) |
+| `txt`   | a caption describing the image (a `text` column is auto-renamed to `txt`; leave empty for caption-free data) |
+
+At training time each HQ `image` is degraded on the fly and the model learns **LQ → HQ**; a fraction of samples keep the original image as a pure reconstruction task. The caption is woven into the instruction ~90% of the time. See `blip3o/data/dataset.py` (`LazySupervisedRestoreDataset`) for the exact logic and the degradation parameters.
+
+#### Inference input format
+
+Inference takes `--json_path` = a JSON **list of objects**, one per LQ image:
+
+```json
+[
+  {"image": "/path/to/lq_face_001.png", "caption": "a photo of a young woman, smiling"},
+  {"image": "/path/to/lq_face_002.png", "caption": ""}
+]
+```
+
+`image` is the LQ input path; `caption` is optional (use `""` if you have none). To build LQ test images from HQ photos, use `generate_degraded_data.py`. Restored images are written to `--output_dir`.
 
 ---
 
@@ -148,16 +170,20 @@ The full pipeline is **two stages**. See `artfr-run.sh` for the exact command se
 
 ### Stage A — Hierarchical SFT of the backbone  `[env: art-fr]`
 
-Three sub-stages (toggle caption / reconstruction options in `blip3o/data/dataset.py`):
+Two steps (toggle caption / reconstruction options in `blip3o/data/dataset.py`):
 
 ```bash
 conda activate art-fr
-bash scripts/sft_i2i_step3.sh        # step3: VAE + diffusion head
-bash scripts/sft_i2i.sh
-bash scripts/sft_i2i_combined.sh
+bash scripts/sft_step1.sh        # step 1: SFT from the BLIP3o-NEXT-SFT-3B backbone
+bash scripts/sft_step2.sh        # step 2: VAE encoder + diffusion head
 ```
 
-Trainers live in `blip3o/train/` (`train.py`, `train_step2.py`, `train_step3.py`, `train_combined.py`); DeepSpeed configs are under `scripts/zero1.json` / `scripts/zero2.json`.
+| Step | Script | Trainer | Starts from |
+|---|---|---|---|
+| 1 | `scripts/sft_step1.sh` | `blip3o/train/train.py` | `BLIP3o-NEXT-SFT-3B` (backbone + TA-Tok + SANA) |
+| 2 | `scripts/sft_step2.sh` | `blip3o/train/train_step3.py` | the step-1 checkpoint |
+
+DeepSpeed configs are under `scripts/zero1.json` / `scripts/zero2.json`.
 
 ### Stage B — Preference RL with DiffusionNFT  `[env: DiffusionNFT]`
 

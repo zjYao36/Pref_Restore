@@ -20,14 +20,14 @@ ENV_RL=DiffusionNFT                                   # <- your DiffusionNFT env
 
 # ----------------------------------------------------------------------------
 # Stage A — Supervised fine-tuning (SFT) of the backbone           [env: art-fr]
-#   step1: noVAE warm-up | step2: text/recon | step3: VAE + diffusion head
+#   step1: SFT from the BLIP3o-NEXT-SFT-3B backbone
+#   step2: VAE encoder + diffusion head
 #   (toggle caption / reconstruction options in blip3o/data/dataset.py)
 # ----------------------------------------------------------------------------
 cd "$REPO"
 source "$CONDA"; conda activate "$ENV_SFT"
-bash scripts/sft_i2i_step3.sh
-bash scripts/sft_i2i.sh
-bash scripts/sft_i2i_combined.sh
+bash scripts/sft_step1.sh
+bash scripts/sft_step2.sh
 
 
 # ----------------------------------------------------------------------------

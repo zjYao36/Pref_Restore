@@ -5,30 +5,28 @@ export WANDB_PROJECT=blip3o_next
 export HF_HOME=/your/hf/home/
 
 VISION_MODEL=/data/phd/hf_models/Unified-Models/TA-Tok/ta_tok.pth
-PRETRAINED_MODEL=/data/phd/yaozhengjian/zjYao_Exprs/BLIP-3o-next/Face-Restoration_FFHQ-CelebA_Scaling-from-300epoch/checkpoint-51000 # 420epoch
+PRETRAINED_MODEL=/data/phd/hf_models/Unified-Models/BLIP3o/BLIP3o-NEXT-SFT-3B
 DIFFUSION=/data/phd/hf_models/Efficient-Large-Model/SANA1.5_1.6B_1024px_diffusers
-DATA_PATH=/data/zgq/yaozhengjian/Datasets/FFHQ/train_data.txt   # 40 个epoch是 17000 iters
-EPOCH=400
+DATA_PATH=/data/phd/yaozhengjian/zjYao_Datasets/Pref-Restore/FFHQ/zjyao_data_txt/train_data_all_caption.txt   # 10 个epoch是 16760 iters
 
-LR=1e-5
-RUN_NAME="Face-Restoration_FFHQ_VAE_Step2_scaling"
+
+EPOCH=200
+LR=1e-4 
+RUN_NAME="Face-Restoration_FFHQ_Step1_ablation_training-curve_V6-LR1-4bsz16"
 
 
 echo "PRETRAINED_MODEL: ${PRETRAINED_MODEL}"
 echo "DIFFUSION: ${DIFFUSION}"
 echo "RUN_NAME: ${RUN_NAME}"
-LOCAL_DIR="/data/phd/yaozhengjian/zjYao_Exprs/BLIP-3o-next/${RUN_NAME}"
+LOCAL_DIR="/data/phd/yaozhengjian/zjYao_Exprs/BLIP-3o-next/Models/Rebuttal/${RUN_NAME}"
 mkdir -p ${LOCAL_DIR}
 
-# vision_tower 只能从外部传入
-# 可能要改一下model_max_length
-# 新加了vae_connector True
 
 torchrun --nproc_per_node=8  \
     --nnodes=1 \
     --rdzv_backend=c10d \
     --rdzv_endpoint=localhost:29503 \
-    blip3o/train/train_step2.py \
+    blip3o/train/train.py \
     --deepspeed scripts/zero1.json \
     --num_image_tokens 65536 \
     --num_scale_tokens 3 \
@@ -36,7 +34,6 @@ torchrun --nproc_per_node=8  \
     --model_name_or_path ${PRETRAINED_MODEL} \
     --diffusion_name_or_path  ${DIFFUSION} \
     --version "qwen_1_5" \
-    --vae_connector True \
     --dataset_cls 'restore' \
     --data_path ${DATA_PATH} \
     --dispatch_batches False \
@@ -50,11 +47,11 @@ torchrun --nproc_per_node=8  \
     --run_name $RUN_NAME \
     --output_dir ${LOCAL_DIR} \
     --num_train_epochs ${EPOCH} \
-    --per_device_train_batch_size 32 \
+    --per_device_train_batch_size 8 \
     --per_device_eval_batch_size 4 \
-    --gradient_accumulation_steps 1 \
+    --gradient_accumulation_steps 2 \
     --save_strategy "steps" \
-    --save_steps 8500 \
+    --save_steps 16000 \
     --save_total_limit 10 \
     --learning_rate ${LR} \
     --weight_decay 0. \
