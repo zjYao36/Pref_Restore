@@ -189,6 +189,9 @@ bash scripts/sft_step2.sh        # step 2: VAE encoder + diffusion head
 
 DeepSpeed configs are under `scripts/zero1.json` / `scripts/zero2.json`.
 
+> 💡 **Skip PhaseA — start straight from PhaseB.**
+> This stage is the **most compute-intensive step of the whole pipeline**, and we observed that restoration quality keeps improving as PhaseA training continues, **with diminishing marginal returns** — most of the easy gains land early; later iterations cost a lot of GPU-hours for a small numerical bump. So that the community can dive straight into PhaseB preference-RL training without re-running our SFT, we publish a PhaseA checkpoint at [**🤗 zjyao-PKU/Pref-Restore-PhaseA-Fidelity**](https://huggingface.co/zjyao-PKU/Pref-Restore-PhaseA-Fidelity). It is tuned to **lean toward restoration fidelity and image realism**, at the cost of **slightly weaker aesthetic quality** — exactly the trade-off you want as a base model that PhaseB's preference-RL will then push toward perceptual preference. Set `config.pretrained.model = "<local snapshot of the HF repo>"` in `DiffusionNFT/config/pref_restore_gt.py` and skip directly to Stage B below.
+
 ### Stage B — Preference RL with DiffusionNFT  `[env: DiffusionNFT]`
 
 #### Prepare the PhaseB dataset
@@ -246,7 +249,7 @@ torchrun --nproc_per_node=8 --master_port=11234 \
 ```
 
 > Before launching, open the chosen config file (e.g. `DiffusionNFT/config/pref_restore_gt.py`) and edit three things:
-> - **Base model** — `config.pretrained.model = "<path to your Stage-A SFT checkpoint>"`
+> - **Base model** — `config.pretrained.model = "<path to your Stage-A SFT checkpoint>"` (or use ours: `snapshot_download("zjyao-PKU/Pref-Restore-PhaseA-Fidelity")` and pass the returned local path)
 > - **Reward weights** — the `reward_fn = {...}` dict (e.g. `{"pickscore": 0.5, "hpsv2": 0.5, "clipscore": 1.0, "lmd": 1.0, "arcface": 1.0, "lpips": 0.5}`)
 > - **Dataset** — the `dataset=` kwarg passed to `_get_config(...)` (default: `"restore_face_codeformer"`); the trainer will read `DiffusionNFT/dataset/<dataset>/{train,test}_metadata.jsonl`
 
