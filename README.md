@@ -22,10 +22,6 @@ Blind face restoration aims to reconstruct a detailed, high-quality face from a 
 
 The result achieves **state-of-the-art performance across both synthetic and real-world benchmarks**.
 
-<p align="center">
-  <img src="figure/arch.png" width="90%" alt="Pref-Restore architecture"/>
-</p>
-
 The codebase builds on three external repositories that we modified and keep **inline** so the release is self-contained and reproducible:
 
 - **[BLIP-3o (BLIP3o-NEXT)](https://github.com/JiuhaiChen/BLIP3o)** — multimodal Qwen-based backbone (`blip3o/`).
@@ -93,8 +89,7 @@ Pref-Restore/
 ├── generate_degraded_data.py          # build degraded (LQ) inputs from clean targets
 ├── process_image_degradation.py
 ├── inference_batch_noPrompt_fixLQ_vae.py        # inference — base (SFT) model
-├── inference_batch_noPrompt_fixLQ_vae_lora.py   # inference — RL-finetuned LoRA model
-└── figure/                            # paper figures
+└── inference_batch_noPrompt_fixLQ_vae_lora.py   # inference — RL-finetuned LoRA model
 ```
 
 `⬇` marks directories that are **gitignored** but expected to exist locally — see below for how to populate them.
