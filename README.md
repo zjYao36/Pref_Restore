@@ -22,13 +22,6 @@ Blind face restoration aims to reconstruct a detailed, high-quality face from a 
 
 The result achieves **state-of-the-art performance across both synthetic and real-world benchmarks**.
 
-The codebase builds on three external repositories that we modified and keep **inline** so the release is self-contained and reproducible:
-
-- **[BLIP-3o (BLIP3o-NEXT)](https://github.com/JiuhaiChen/BLIP3o)** — multimodal Qwen-based backbone (`blip3o/`).
-- **[BasicSR](https://github.com/XPixelGroup/BasicSR)** — image-restoration toolbox (`BasicSR/`, with our modifications).
-- **[NVlabs/DiffusionNFT](https://github.com/NVlabs/DiffusionNFT)** — diffusion preference-RL backbone (`DiffusionNFT/`, with our modifications).
-
-Their original LICENSE files are preserved.
 
 ---
 
