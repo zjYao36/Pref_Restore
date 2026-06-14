@@ -45,7 +45,7 @@ target_transform = v2.Compose(
 
 @dataclass
 class T2IConfig:
-    model_path: str = "/data/phd/yaozhengjian/zjYao_Exprs/BLIP-3o-next/Face-Restore_restoration-FFHQ+CelebA/checkpoint-30800"
+    model_path: str = ""
     device: str = "cuda:0"
     dtype: torch.dtype = torch.bfloat16
     # generation config
@@ -203,14 +203,14 @@ class TextToImageInference:
 def main():
     # 添加命令行参数解析
     parser = argparse.ArgumentParser(description="Batch image generation with degradation")
-    parser.add_argument("--model_path", type=str, 
-                       default='/data/phd/yaozhengjian/zjYao_Exprs/BLIP-3o-next/Face-Restore_restoration/checkpoint-34640',
+    parser.add_argument("--model_path", type=str,
+                       required=True,
                        help="Path to the model checkpoint")
     parser.add_argument("--json_path", type=str,
-                       default="/data/zgq/yaozhengjian/Datasets/FFHQ_val/CelebA_HQ/captions.json",
+                       required=True,
                        help="Path to the JSON dataset file")
     parser.add_argument("--output_dir", type=str,
-                       default="/data/phd/yaozhengjian/zjYao_Exprs/BLIP-3o-next/Eval/FR-FFHQ-heavy",
+                       required=True,
                        help="Output directory for generated images")
     parser.add_argument("--lora_path", type=str, default=None,
                        help="Path to LoRA weights directory")
