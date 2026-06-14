@@ -35,7 +35,7 @@ torchrun --nproc_per_node=8  \
     --nnodes=1 \
     --rdzv_backend=c10d \
     --rdzv_endpoint=localhost:29503 \
-    blip3o/train/train_step3.py \
+    blip3o/train/train_step2.py \
     --deepspeed scripts/zero1.json \
     --num_image_tokens 65536 \
     --num_scale_tokens 3 \

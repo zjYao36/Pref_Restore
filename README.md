@@ -180,8 +180,8 @@ bash scripts/sft_step2.sh        # step 2: VAE encoder + diffusion head
 
 | Step | Script | Trainer | Starts from |
 |---|---|---|---|
-| 1 | `scripts/sft_step1.sh` | `blip3o/train/train.py` | `BLIP3o-NEXT-SFT-3B` (backbone + TA-Tok + SANA) |
-| 2 | `scripts/sft_step2.sh` | `blip3o/train/train_step3.py` | the step-1 checkpoint |
+| 1 | `scripts/sft_step1.sh` | `blip3o/train/train_step1.py` | `BLIP3o-NEXT-SFT-3B` (backbone + TA-Tok + SANA) |
+| 2 | `scripts/sft_step2.sh` | `blip3o/train/train_step2.py` | the step-1 checkpoint |
 
 DeepSpeed configs are under `scripts/zero1.json` / `scripts/zero2.json`.
 
