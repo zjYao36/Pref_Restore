@@ -1,26 +1,39 @@
-# for resume training, just change {LOCAL_DIR}
-export WANDB_API_KEY='246286f3e4e4f0f6075dc23780b95a3c8fb523c7'
+# SFT Step 2 — continue from the Step-1 checkpoint, unfreeze the VAE encoder.
+# For resume training, just point LOCAL_DIR to the previous output_dir.
+#
+# Required edits before running:
+#   - WANDB_API_KEY:    your W&B key (or remove --report_to wandb)
+#   - HF_HOME:          your local HuggingFace cache dir
+#   - VISION_MODEL:     same TA-Tok path used in step 1
+#   - PRETRAINED_MODEL: the Step-1 output checkpoint (e.g. a checkpoint-XXXXX
+#                       under the step-1 LOCAL_DIR)
+#   - DIFFUSION:        same SANA1.5 diffusers folder used in step 1
+#   - DATA_PATH:        same plain-text manifest used in step 1 (or any compatible)
+#   - LOCAL_DIR:        where to write step-2 checkpoints
+export WANDB_API_KEY='your_wandb_api_key'
 export WANDB_PROJECT=prefRestore
-export HF_HOME=/your/hf/home/
+export HF_HOME=/path/to/your/hf_cache
 
-VISION_MODEL=/data/phd/hf_models/Unified-Models/TA-Tok/ta_tok.pth
-PRETRAINED_MODEL=/data/phd/yaozhengjian/zjYao_Exprs/BLIP-3o-next/Models/Face-Restoration_FFHQ_VAE_Step3_scaling+Text+Recon-V2_3/checkpoint-128000
-DIFFUSION=/data/phd/hf_models/Efficient-Large-Model/SANA1.5_1.6B_1024px_diffusers
-DATA_PATH=/data/phd/yaozhengjian/zjYao_Datasets/Pref-Restore/FFHQ/zjyao_data_txt/train_data_all_caption.txt   # 10 个epoch是 16760 iters
+VISION_MODEL=/path/to/TA-Tok/ta_tok.pth
+PRETRAINED_MODEL=/path/to/step1_output/checkpoint-XXXXX
+DIFFUSION=/path/to/SANA1.5_1.6B_1024px_diffusers
+DATA_PATH=/path/to/your/train_data.txt
 
 
 EPOCH=100
-LR=2e-5 
+LR=2e-5
 RUN_NAME="Face-Restoration_FFHQ_Step2"
 
 
 echo "PRETRAINED_MODEL: ${PRETRAINED_MODEL}"
 echo "DIFFUSION: ${DIFFUSION}"
 echo "RUN_NAME: ${RUN_NAME}"
-LOCAL_DIR="/data/phd/yaozhengjian/zjYao_Exprs/BLIP-3o-next/Models/Rebuttal/${RUN_NAME}"
+LOCAL_DIR="./checkpoints/${RUN_NAME}"
 mkdir -p ${LOCAL_DIR}
 
 
+# Note: --torch_compile True triggers a one-off compilation that takes ~5-10 min
+#       on first launch; set to False if you want a faster startup for debugging.
 torchrun --nproc_per_node=8  \
     --nnodes=1 \
     --rdzv_backend=c10d \
@@ -67,4 +80,4 @@ torchrun --nproc_per_node=8  \
     --report_to wandb \
     --torch_compile True \
     --torch_compile_backend inductor \
-    --dataloader_drop_last True 
+    --dataloader_drop_last True
