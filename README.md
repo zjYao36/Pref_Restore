@@ -124,8 +124,8 @@ The reward code expects these **exact paths** (see `DiffusionNFT/reward_ckpts/RE
 
 | Data | Download from | Used by |
 |---|---|---|
-| FFHQ-256 / FFHQ-512 | [official FFHQ](https://github.com/NVlabs/ffhq-dataset) | SFT + RL — HQ targets |
-| CelebA-HQ | [CelebA-HQ](https://github.com/tkarras/progressive_growing_of_gans) | SFT + RL — train / val |
+| FFHQ-256 / FFHQ-512 | FFHQ | SFT + RL — HQ targets |
+| CelebA-HQ | CelebA-HQ | SFT + RL — train / val |
 | Real-world FR test sets (LFW / WebPhoto / WIDER / CelebChild) **or your own photos** | standard blind-FR benchmarks | inference inputs |
 
 > You only need **high-quality (HQ) face images + one caption per image** to train. The degraded **low-quality (LQ) inputs are synthesized on the fly** during training (blur · down-sampling · noise · JPEG), so you do **not** pre-build LQ/HQ pairs.
