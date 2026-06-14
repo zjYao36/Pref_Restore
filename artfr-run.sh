@@ -25,9 +25,9 @@ ENV_RL=DiffusionNFT                                   # <- your DiffusionNFT env
 # ----------------------------------------------------------------------------
 cd "$REPO"
 source "$CONDA"; conda activate "$ENV_SFT"
-bash scripts/zjyao_i2i_step3.sh
-bash scripts/zjyao_i2i.sh
-bash scripts/zjyao_i2i_combined.sh
+bash scripts/sft_i2i_step3.sh
+bash scripts/sft_i2i.sh
+bash scripts/sft_i2i_combined.sh
 
 
 # ----------------------------------------------------------------------------

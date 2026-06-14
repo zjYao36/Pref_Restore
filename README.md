@@ -91,18 +91,21 @@ Everything below is **gitignored** and must be downloaded locally. Grab only wha
 
 | To run… | You need |
 |---|---|
-| **Inference only** | ① Backbone weights + your own LQ images |
-| **SFT training (Stage A)** | ① Backbone weights + ③ Datasets |
-| **Preference-RL training (Stage B)** | ① Backbone weights + ② Reward models + ③ Datasets |
+| **Inference** | a trained checkpoint (your Stage-A SFT / Stage-B RL output) + your own LQ images |
+| **SFT training (Stage A)** | ① Backbone components + ③ Datasets |
+| **Preference-RL training (Stage B)** | your SFT checkpoint + ② Reward models + ③ Datasets |
 
-### ① Backbone weights — loaded by *every* step (SFT · RL · inference)
+### ① Backbone components — needed to assemble the model for SFT (Stage A)
 
-| File | Download from | Where it goes | Used by |
+The model is built from **three separately-downloaded pieces**. The BLIP-3o-NEXT backbone is **not** self-contained — its code loads the TA-Tok tokenizer and the SANA decoder from external paths (the SFT scripts wire all three):
+
+| Component | Download from | Wired via (in `scripts/sft_i2i*.sh`) | Role |
 |---|---|---|---|
-| `ta_tok.pth` (TA-Tok image tokenizer) | the BLIP-3o-NEXT release | any local path → point `VISION_MODEL=` in `scripts/zjyao_i2i*.sh` to it | image tokenizer |
-| SANA 1.5 diffusion decoder (a diffusers folder) | [Efficient-Large-Model / SANA1.5](https://huggingface.co/Efficient-Large-Model) | any local path → point `DIFFUSION=` in the SFT scripts to it | diffusion head |
+| **BLIP3o-NEXT-SFT-3B** (multimodal LLM backbone) | [HF: BLIP3o/BLIP3o-NEXT-SFT-3B](https://huggingface.co/BLIP3o/BLIP3o-NEXT-SFT-3B) ([code](https://github.com/JiuhaiChen/BLIP3o)) | `--model_name_or_path` ( `PRETRAINED_MODEL=` ) | auto-regressive backbone |
+| `ta_tok.pth` (TA-Tok image tokenizer) | the TA-Tok / BLIP-3o-NEXT release | `--vision_tower` ( `VISION_MODEL=` ) — must be passed externally | image tokenizer |
+| SANA 1.5 diffusion decoder (a diffusers folder) | [Efficient-Large-Model / SANA1.5](https://huggingface.co/Efficient-Large-Model) | `--diffusion_name_or_path` ( `DIFFUSION=` ) | diffusion decoder |
 
-> These two define the model architecture. After Stage A, your SFT checkpoint (passed as `--model_path` at inference) already embeds them — for **inference you only need the SFT checkpoint**, not the raw SANA/TA-Tok files again.
+> **You only need these three to train Stage A from scratch.** For **inference and RL (Stage B)** you pass your **trained Stage-A SFT checkpoint** as `--model_path` / `model_name_or_path` — it loads the fully-assembled model, so you do not re-supply the raw backbone, TA-Tok, or SANA files.
 
 ### ② Reward models — only for RL training (Stage B) → place under `DiffusionNFT/reward_ckpts/`
 
@@ -149,9 +152,9 @@ Three sub-stages (toggle caption / reconstruction options in `blip3o/data/datase
 
 ```bash
 conda activate art-fr
-bash scripts/zjyao_i2i_step3.sh        # step3: VAE + diffusion head
-bash scripts/zjyao_i2i.sh
-bash scripts/zjyao_i2i_combined.sh
+bash scripts/sft_i2i_step3.sh        # step3: VAE + diffusion head
+bash scripts/sft_i2i.sh
+bash scripts/sft_i2i_combined.sh
 ```
 
 Trainers live in `blip3o/train/` (`train.py`, `train_step2.py`, `train_step3.py`, `train_combined.py`); DeepSpeed configs are under `scripts/zero1.json` / `scripts/zero2.json`.
