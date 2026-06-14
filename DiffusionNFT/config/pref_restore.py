@@ -13,7 +13,7 @@ def _get_config(base_model="prefRestore", n_gpus=1, gradient_step_per_epoch=1, d
     config.base_model = base_model
     config.dataset = os.path.join(os.getcwd(), f"dataset/{dataset}")
 
-    config.pretrained.model = "/data/phd/yaozhengjian/zjYao_Exprs/BLIP-3o-next/Models/Face-Restoration_FFHQ_VAE_Step3_scaling+Text+Recon-V2_3/checkpoint-128000"
+    config.pretrained.model = "" # add your model from phase A
     config.sample.num_steps = 10
     config.sample.eval_num_steps = 30
     config.sample.guidance_scale = 2.0
@@ -82,25 +82,6 @@ def pref_restore_multi_reward():
         name="multi_reward",
     )
     config.run_name = f"prefRestore_multi-reward_dosampleFalse"
-    config.sample.num_steps = 30
-    config.beta = 0.1
-    return config
-
-def pref_restore_multi_reward_ffhq():
-    reward_fn = {
-        "pickscore": 1.0,
-        "hpsv2": 1.0,
-        "clipscore": 1.0,
-    }
-    config = _get_config(
-        base_model="prefRestore",
-        n_gpus=8,
-        gradient_step_per_epoch=1,
-        dataset="restore_face_ffhq",
-        reward_fn=reward_fn,
-        name="multi_reward",
-    )
-    config.run_name = f"prefRestore_multi-FFHQ-data"
     config.sample.num_steps = 30
     config.beta = 0.1
     return config

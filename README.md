@@ -109,16 +109,36 @@ The model is built from **three separately-downloaded pieces**. The BLIP-3o-NEXT
 
 ### ② Reward models — only for RL training (Stage B) → place under `DiffusionNFT/reward_ckpts/`
 
-The reward code expects these **exact paths** (see `DiffusionNFT/reward_ckpts/README.md`):
+All reward loaders resolve paths through `DiffusionNFT/flow_grpo/reward_ckpt_path.py`, which defaults to **`<repo>/DiffusionNFT/reward_ckpts/`**. Download each model into the exact local subpath shown below and you're done — no code edits needed.
 
-| File / folder | Download from | Exact local path |
+```
+DiffusionNFT/reward_ckpts/
+├── laion/CLIP-ViT-H-14-laion2B-s32B-b79K/        ← PickScore backbone (used by PickScoreScorer)
+├── yuvalkirstain/PickScore_v1/                   ← PickScore preference head
+├── openai/clip-vit-large-patch14/                ← used by ClipScorer
+├── HPS_v2.1_compressed.pt                        ← HPSv2.1 weight
+├── open_clip_pytorch_model.bin                   ← HPSv2 OpenCLIP backbone
+├── sac+logos+ava1-l14-linearMSE.pth              ← aesthetic scorer (optional)
+└── VQFR_metric_paper/                            ← only for the GT-aware reward (ArcFace)
+    ├── arcface/                                  ← Python module (clone of ronghuaiyang/arcface-pytorch)
+    │   └── models/resnet.py
+    └── resnet18_110.pth                          ← ArcFace ResNet-18 identity weight
+```
+
+| File / folder | Download from | Used by |
 |---|---|---|
-| LAION CLIP-ViT-H/14 | [laion/CLIP-ViT-H-14-laion2B-s32B-b79K](https://huggingface.co/laion/CLIP-ViT-H-14-laion2B-s32B-b79K) | `DiffusionNFT/reward_ckpts/laion/CLIP-ViT-H-14-laion2B-s32B-b79K/` |
-| PickScore v1 | [yuvalkirstain/PickScore_v1](https://huggingface.co/yuvalkirstain/PickScore_v1) | `DiffusionNFT/reward_ckpts/yuvalkirstain/PickScore_v1/` |
-| OpenAI CLIP-ViT-L/14 | [openai/clip-vit-large-patch14](https://huggingface.co/openai/clip-vit-large-patch14) | `DiffusionNFT/reward_ckpts/openai/clip-vit-large-patch14/` |
-| HPS v2.1 | [tgxs002/HPSv2](https://github.com/tgxs002/HPSv2) | `DiffusionNFT/reward_ckpts/HPS_v2.1_compressed.pt` |
+| `laion/CLIP-ViT-H-14-laion2B-s32B-b79K/` | [laion/CLIP-ViT-H-14-laion2B-s32B-b79K](https://huggingface.co/laion/CLIP-ViT-H-14-laion2B-s32B-b79K) | PickScore (as the image/text encoder) |
+| `yuvalkirstain/PickScore_v1/` | [yuvalkirstain/PickScore_v1](https://huggingface.co/yuvalkirstain/PickScore_v1) | PickScore reward |
+| `openai/clip-vit-large-patch14/` | [openai/clip-vit-large-patch14](https://huggingface.co/openai/clip-vit-large-patch14) | CLIP-score reward |
+| `HPS_v2.1_compressed.pt` | [tgxs002/HPSv2 release](https://github.com/tgxs002/HPSv2) | HPSv2 reward |
+| `open_clip_pytorch_model.bin` | bundled with the HPSv2 release | HPSv2 backbone |
+| `sac+logos+ava1-l14-linearMSE.pth` | [LAION-AI/aesthetic-predictor](https://github.com/christophschuhmann/improved-aesthetic-predictor) | aesthetic scorer (optional) |
+| `VQFR_metric_paper/arcface/` (python module) | [ronghuaiyang/arcface-pytorch](https://github.com/ronghuaiyang/arcface-pytorch) | ArcFace identity reward (GT-aware config only) |
+| `VQFR_metric_paper/resnet18_110.pth` | [TencentARC/VQFR](https://github.com/TencentARC/VQFR) — metric_weights | ArcFace identity reward (GT-aware config only) |
 
-> The default config (`pref_restore_multi_reward`) uses the four models above. The **GT-aware variant only** (`bash scripts/run_gt.sh`) additionally needs landmark (LMD) + ArcFace identity models — see `DiffusionNFT/config/pref_restore_gt.py`. Skip those if you use the default.
+> **Default config** `pref_restore_multi_reward` uses **PickScore + HPSv2 + CLIPScore** — you can ignore the ArcFace + VQFR rows. The **GT-aware config** `pref_restore_gt_reward` (paper default) additionally needs the two `VQFR_metric_paper/...` items, plus an LMD weight that the GT config points to — see `DiffusionNFT/config/pref_restore_gt.py`.
+>
+> **Keep your weights elsewhere?** Export `PREF_RESTORE_REWARD_CKPT_DIR=/your/abs/path` before launching training, and the loaders will read from that directory instead. For ArcFace you can additionally point `PREF_RESTORE_ARCFACE_ROOT` / `PREF_RESTORE_ARCFACE_WEIGHT` at non-default locations.
 
 ### ③ Datasets
 

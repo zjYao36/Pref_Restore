@@ -4,10 +4,20 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-ARCFACE_MODULE_ROOT = "/data/phd/yaozhengjian/Code/RL/ART-FRv2/metrics/VQFR/metric_paper"
-ARCFACE_WEIGHT_PATH = os.path.join(
-    os.path.dirname(ARCFACE_MODULE_ROOT),
-    "experiments/pretrained_models/metric_weights/resnet18_110.pth",
+from flow_grpo.reward_ckpt_path import CKPT_PATH
+
+# Default layout (overridable via env var PREF_RESTORE_ARCFACE_ROOT):
+#   <reward_ckpts>/VQFR_metric_paper/
+#       ├── arcface/                ← Python module (clone of ronghuaiyang/arcface-pytorch)
+#       │   └── models/resnet.py
+#       └── resnet18_110.pth        ← ArcFace ResNet-18 face-identity weight
+ARCFACE_MODULE_ROOT = os.environ.get(
+    "PREF_RESTORE_ARCFACE_ROOT",
+    os.path.join(CKPT_PATH, "VQFR_metric_paper"),
+)
+ARCFACE_WEIGHT_PATH = os.environ.get(
+    "PREF_RESTORE_ARCFACE_WEIGHT",
+    os.path.join(ARCFACE_MODULE_ROOT, "resnet18_110.pth"),
 )
 
 

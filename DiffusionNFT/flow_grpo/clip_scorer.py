@@ -1,11 +1,14 @@
 # Based on https://github.com/RE-N-Y/imscore/blob/main/src/imscore/preference/model.py
 
+import os
 import torch
 import torch.nn as nn
 import torchvision.transforms as T
 from transformers import AutoImageProcessor, CLIPProcessor, CLIPModel
 import numpy as np
 from PIL import Image
+
+from flow_grpo.reward_ckpt_path import CKPT_PATH
 
 
 def get_size(size):
@@ -34,8 +37,8 @@ class ClipScorer(torch.nn.Module):
     def __init__(self, device):
         super().__init__()
         self.device = device
-        self.model = CLIPModel.from_pretrained("/data/phd/yaozhengjian/Code/RL/DiffusionNFT/reward_ckpts/openai/clip-vit-large-patch14").to(device)
-        self.processor = CLIPProcessor.from_pretrained("/data/phd/yaozhengjian/Code/RL/DiffusionNFT/reward_ckpts/openai/clip-vit-large-patch14")
+        self.model = CLIPModel.from_pretrained(os.path.join(CKPT_PATH, "openai/clip-vit-large-patch14")).to(device)
+        self.processor = CLIPProcessor.from_pretrained(os.path.join(CKPT_PATH, "openai/clip-vit-large-patch14"))
         self.tform = get_image_transform(self.processor.image_processor)
         self.eval()
 

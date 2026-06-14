@@ -13,7 +13,7 @@ def _get_config(base_model="prefRestore", n_gpus=1, gradient_step_per_epoch=1, d
     config.base_model = base_model
     config.dataset = os.path.join(os.getcwd(), f"dataset/{dataset}")
 
-    config.pretrained.model = "/data/phd/yaozhengjian/zjYao_Exprs/BLIP-3o-next/Models/Face-Restoration_FFHQ_VAE_Step3_scaling+Text+Recon-V2_3/checkpoint-128000"
+    config.pretrained.model = "" # add your model from phase A
     config.sample.num_steps = 10
     config.sample.eval_num_steps = 30
     config.sample.guidance_scale = 2.0
