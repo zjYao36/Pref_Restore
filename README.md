@@ -245,6 +245,11 @@ torchrun --nproc_per_node=8 --master_port=11234 \
     --config config/pref_restore.py:pref_restore_multi_reward
 ```
 
+> Before launching, open the chosen config file (e.g. `DiffusionNFT/config/pref_restore_gt.py`) and edit three things:
+> - **Base model** — `config.pretrained.model = "<path to your Stage-A SFT checkpoint>"`
+> - **Reward weights** — the `reward_fn = {...}` dict (e.g. `{"pickscore": 0.5, "hpsv2": 0.5, "clipscore": 1.0, "lmd": 1.0, "arcface": 1.0, "lpips": 0.5}`)
+> - **Dataset** — the `dataset=` kwarg passed to `_get_config(...)` (default: `"restore_face_codeformer"`); the trainer will read `DiffusionNFT/dataset/<dataset>/{train,test}_metadata.jsonl`
+
 | Script | Config | Dataset (under `DiffusionNFT/dataset/`) |
 |---|---|---|
 | `scripts/train_nft_prefRestore_gt.py` | `config/pref_restore_gt.py:pref_restore_gt_reward` | `restore_face_codeformer/` (paper default) |
