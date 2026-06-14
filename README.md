@@ -126,6 +126,8 @@ The reward code expects these **exact paths** (see `DiffusionNFT/reward_ckpts/RE
 |---|---|---|
 | FFHQ-256 / FFHQ-512 | FFHQ | SFT + RL — HQ targets |
 | CelebA-HQ | CelebA-HQ | SFT + RL — train / val |
+| FFHQ-512 + captions (the exact split we used) | [HF: Ryan-sjtu/ffhq512-caption](https://huggingface.co/datasets/Ryan-sjtu/ffhq512-caption) | drop-in (HQ image + caption) for Stage A |
+| FFHQ + LLaVA short captions (the exact split we used) | [HF: irodkin/ffhq_with_llava_shorter_captions](https://huggingface.co/datasets/irodkin/ffhq_with_llava_shorter_captions) | drop-in (HQ image + caption) for Stage A |
 | Real-world FR test sets (LFW / WebPhoto / WIDER / CelebChild) **or your own photos** | standard blind-FR benchmarks | inference inputs |
 
 > You only need **high-quality (HQ) face images + one caption per image** to train. The degraded **low-quality (LQ) inputs are synthesized on the fly** during training (blur · down-sampling · noise · JPEG), so you do **not** pre-build LQ/HQ pairs.
