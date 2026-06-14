@@ -160,7 +160,7 @@ Inference takes `--json_path` = a JSON **list of objects**, one per LQ image:
 ]
 ```
 
-`image` is the LQ input path; `caption` is optional (use `""` if you have none). To build LQ test images from HQ photos, use `generate_degraded_data.py`. Restored images are written to `--output_dir`.
+`image` is the LQ input path; `caption` is optional (use `""` if you have none). To synthesize LQ test images from HQ photos, use `process_image_degradation.py`. Restored images are written to `--output_dir`.
 
 ---
 
